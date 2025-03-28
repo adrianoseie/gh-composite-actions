@@ -1,0 +1,47 @@
+name: "gcp-auth"
+description: "Used to Authenticate to GCP"
+
+inputs:
+  token_format:
+    description: 'GCP access_token'
+    required: true
+    default: access_token
+  access_token_lifetime:
+    description: 'GCP access_token lifetime in seconds'
+    required: true
+    default: 3600s
+  create_credentials_file:
+    description: 'Indicates whether to create credentials_file'
+    required: true
+  GCP_PROJECT_NUMBER:
+    description: 'GCP project number'
+    required: true
+  GCP_PROJECT_ID:
+    description: 'GCP project ID'
+    required: true
+  GCP_SERVICE_ACCOUNT:
+    description: 'GCP CI Service account. e.g terraform-account'
+    required: true
+  GCP_IDENTITY_PROVIDER_POOL:
+    description: 'GCP identity provider pool'
+    required: true
+  GCP_IDENTITY_PROVIDER:
+    description: 'GCP identity provider'
+    required: true
+outputs:
+  access_token:
+    description: "GCP auth access token"
+    value: ${{ steps.auth.outputs.access_token }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: 'auth'
+      name: 'gcp auth'
+      uses: 'google-github-actions/auth@v1.1.1'
+      with:
+        token_format: ${{ inputs.token_format }}
+        access_token_lifetime: ${{ inputs.access_token_lifetime }}
+        workload_identity_provider: 'projects/${{ inputs.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/${{ inputs.GCP_IDENTITY_PROVIDER_POOL }}/providers/${{ inputs.GCP_IDENTITY_PROVIDER }}'
+        service_account: '${{ inputs.GCP_SERVICE_ACCOUNT }}@${{ inputs.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
+        create_credentials_file: ${{ inputs.create_credentials_file }}

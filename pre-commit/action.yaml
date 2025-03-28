@@ -1,0 +1,29 @@
+name: "pre-commit"
+description: "Setup pre-commit dependencies"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - name: pre-commit-hooks
+      shell: bash
+      run: |
+          pip3 install pre-commit  > /dev/null
+          pip3 install checkov  > /dev/null
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash  > /dev/null
+
+          curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.16.0/terraform-docs-v0.16.0-$(uname)-amd64.tar.gz
+          tar -xzf terraform-docs.tar.gz
+          chmod +x terraform-docs
+          sudo mv terraform-docs /usr/bin/terraform-docs
+
+          wget https://github.com/aquasecurity/tfsec/releases/download/v1.26.0/tfsec-linux-amd64 --quiet
+          sudo mv tfsec-linux-amd64 /usr/bin/tfsec
+          sudo chmod +x /usr/bin/tfsec
+
+          wget https://github.com/norwoodj/helm-docs/releases/download/v1.12.0/helm-docs_1.12.0_Linux_x86_64.deb --quiet
+          sudo dpkg -i helm-docs_1.12.0_Linux_x86_64.deb > /dev/null
+
+          echo "Running pre-commit Hooks"
+          pre-commit run -a --color=always --show-diff-on-failure

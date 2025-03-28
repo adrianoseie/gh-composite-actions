@@ -1,0 +1,53 @@
+name: "argo-workflows"
+description: "Install and submit argo workflows"
+
+inputs:
+  argoCliVersion:
+    description: 'Argo CLI version'
+    required: true
+    default: v3.3.8
+  argoNamespace:
+    description: 'Argo Workflow Namespace'
+    required: true
+  gkeClusterName:
+    description: 'GKE Cluster Name'
+    required: true
+  gkeZone:
+    description: 'GKE Cluster location'
+    required: true
+  argoWorkflowFilePath:
+    description: 'Argo Workflow File path'
+    required: true
+  argoParameterFilePath:
+    description: 'Argo Workflow Parameter File path'
+    required: true
+  argoSubmitOption:
+    description: 'Argo submit Command Options. e.g. --wait or --watch'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: google-github-actions/setup-gcloud@v2
+    - uses: google-github-actions/get-gke-credentials@v2
+      with:
+          cluster_name: ${{ inputs.gkeClusterName }}
+          location: ${{ inputs.gkeZone }}
+    - id: 'install-argo-cli'
+      name: 'install-argo-cli'
+      shell: bash
+      run: |
+        wget --quiet https://github.com/argoproj/argo/releases/download/${{ inputs.argoCliVersion }}/argo-linux-amd64.gz
+        gunzip argo-linux-amd64.gz
+        sudo mv argo-linux-amd64 /usr/local/bin/argo
+        sudo chmod +x /usr/local/bin/argo
+
+    - name: submit-argo-workflow
+      id: argo-workflow
+      shell: bash
+      run: |
+        argo submit \
+          ${{ inputs.argoSubmitOption }} \
+          -n ${{ inputs.argoNamespace }} \
+          ${{ inputs.argoWorkflowFilePath }} \
+          --parameter-file ${{ inputs.argoParameterFilePath }}

@@ -1,0 +1,72 @@
+name: "publish-nuget"
+description: "Package and Publish Nuget packages"
+
+inputs:
+  repositoryOwner:
+    description: 'Github ORG'
+    required: true
+    default: Click-Ins
+  repositoryName:
+    description: 'The name of the repository'
+    required: true
+  nugetAuthToken:
+    description: 'GitHub Token for package registry'
+    required: true
+  dotnetInstallDir:
+    description: 'Directory to Install dotnet executable'
+    required: true
+    default: ./.dotnet
+  dotnetVersion:
+    description: 'dotnet Version'
+    required: true
+    default: 6.0.x
+  buildRuntime:
+    description: 'dotnet build runtime'
+    required: true
+    default: win10-x64
+  generatePackageOnBuild:
+    description: 'Generate Package On Build'
+    required: true
+    default: "false"
+  dotnetExtraSources:
+    description: 'Dotnet extra source repos'
+    required: false
+  gitUserName:
+    description: 'Git user.name'
+    required: false
+    default: Click-Ins
+  gitUserEmail:
+    description: 'Git user.email'
+    required: false
+    default: click-ins@click-ins.io
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ inputs.dotnetVersion }}
+        source-url: "https://nuget.pkg.github.com/${{ inputs.repositoryOwner }}/index.json"
+      env:
+        DOTNET_INSTALL_DIR: ${{ inputs.dotnetInstallDir }}
+        NUGET_AUTH_TOKEN: ${{ inputs.nugetAuthToken }}
+
+    - name: package-nuget
+      shell: bash
+      run: |
+        ${{ inputs.dotnetExtraSources }}
+        dotnet tool install Versionize --tool-path "${{ inputs.dotnetInstallDir }}/tools"
+        export PATH=$PATH:${{ inputs.dotnetInstallDir }}:${{ inputs.dotnetInstallDir }}/tools
+        git config --global user.name ${{ inputs.gitUserName }}
+        git config --global user.email ${{ inputs.gitUserEmail }}
+        git remote set-url origin https://${{ inputs.nugetAuthToken }}@github.com/${{ inputs.repositoryOwner }}/${{ inputs.repositoryName }}.git
+        versionize --exit-insignificant-commits --ignore-insignificant-commits --commit-suffix "[skip ci]"
+        git push --follow-tags origin "${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+        dotnet pack --configuration Release \
+          --runtime ${{ inputs.buildRuntime }} \
+          -p:GeneratePackageOnBuild=${{ inputs.generatePackageOnBuild }} \
+          --output nupkgs
+    - name: publish-nuget
+      shell: bash
+      run: dotnet nuget push  "./nupkgs/*.nupkg" --api-key ${{ inputs.nugetAuthToken }} --skip-duplicate
