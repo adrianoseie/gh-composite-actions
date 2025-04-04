@@ -1,4 +1,4 @@
-# Click-Ins GitHub Composite Actions
+# BantuOps GitHub Composite Actions
 
 ## GCP authentication
 > Authenticates to GCP using Workload Identity
@@ -29,7 +29,7 @@ jobs:
     steps:
        - name: "gcp-auth"
         id: auth
-        uses: 'click-ins/gh-composite-actions/gcp-auth@v0.1.0'
+        uses: 'BantuOps/gh-composite-actions/gcp-auth@v0.1.0'
         with:
           token_format: 'access_token'
           access_token_lifetime: 18000s
@@ -72,7 +72,7 @@ jobs:
         shell: bash
     steps:
       - name: pre-commit
-        uses:  'click-ins/gh-composite-actions/pre-commit@v0.1.0'
+        uses:  'BantuOps/gh-composite-actions/pre-commit@v0.1.0'
 ```
 
 ## Argo Workflows
@@ -107,7 +107,7 @@ jobs:
     steps:
        - name: "gcp-auth"
         id: auth
-        uses: 'click-ins/gh-composite-actions/argo-workflows@v0.1.1'
+        uses: 'BantuOps/gh-composite-actions/argo-workflows@v0.1.1'
         with:
           argoCliVersion: 'v3.3.8'
           argoNamespace: 'workflows'
@@ -130,7 +130,7 @@ jobs:
       - self-hosted
       - sandbox
       - cpu
-      - click-ins
+      - BantuOps
 
     steps:
       - name: Checkout
@@ -139,7 +139,7 @@ jobs:
          fetch-depth: '0'
          persist-credentials: false
       - name: publish-nuget-pkg
-        uses: 'click-ins/gh-composite-actions/nuget@v1.3.0'
+        uses: 'BantuOps/gh-composite-actions/nuget@v1.3.0'
         with:
           repositoryOwner: ${{ github.repository_owner }}
           repositoryName: ${{ github.event.repository.name }}

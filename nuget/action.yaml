@@ -5,7 +5,7 @@ inputs:
   repositoryOwner:
     description: 'Github ORG'
     required: true
-    default: Click-Ins
+    default: BantuOps
   repositoryName:
     description: 'The name of the repository'
     required: true
@@ -34,11 +34,11 @@ inputs:
   gitUserName:
     description: 'Git user.name'
     required: false
-    default: Click-Ins
+    default: BantuOps
   gitUserEmail:
     description: 'Git user.email'
     required: false
-    default: click-ins@click-ins.io
+    default: ops@bantuops.com
 
 runs:
   using: "composite"
