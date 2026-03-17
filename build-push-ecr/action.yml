@@ -1,0 +1,77 @@
+name: 'Build and Push to ECR'
+description: 'Build Docker image and push to AWS ECR using OIDC'
+
+inputs:
+  ecr-repository:
+    description: 'ECR repository name'
+    required: true
+  aws-role-arn:
+    description: 'IAM role ARN to assume (OIDC)'
+    required: true
+  aws-region:
+    description: 'AWS region for ECR'
+    required: false
+    default: 'us-east-1'
+  tag-with-sha:
+    description: 'Tag image with git SHA'
+    required: false
+    default: 'true'
+  tag-with-latest:
+    description: 'Tag image as latest'
+    required: false
+    default: 'true'
+  context-path:
+    description: 'Docker build context path (directory used as build context). Use when Dockerfile or sources are in a subdirectory.'
+    required: false
+    default: '.'
+  dockerfile-path:
+    description: 'Path to Dockerfile relative to repo root. If not set, uses context-path/Dockerfile.'
+    required: false
+    default: ''
+
+outputs:
+  image-uri:
+    description: 'Full ECR image URI (with :latest or :sha)'
+    value: ${{ steps.ecr-login.outputs.registry }}/${{ inputs.ecr-repository }}:latest
+  registry:
+    description: 'ECR registry URL'
+    value: ${{ steps.ecr-login.outputs.registry }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-arn }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Login to Amazon ECR
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build Docker image
+      run: |
+        REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+        REPO="${{ inputs.ecr-repository }}"
+        SHORT_SHA="${GITHUB_SHA:0:7}"
+        CONTEXT_PATH="${{ inputs.context-path }}"
+        DOCKERFILE_PATH="${{ inputs.dockerfile-path }}"
+        TAGS=""
+        [ "${{ inputs.tag-with-latest }}" = "true" ] && TAGS="$TAGS -t ${REGISTRY}/${REPO}:latest"
+        [ "${{ inputs.tag-with-sha }}" = "true" ] && TAGS="$TAGS -t ${REGISTRY}/${REPO}:${SHORT_SHA}"
+        if [ -n "$DOCKERFILE_PATH" ]; then
+          docker build $TAGS -f "$DOCKERFILE_PATH" "$CONTEXT_PATH"
+        else
+          docker build $TAGS "$CONTEXT_PATH"
+        fi
+      shell: bash
+
+    - name: Push image to ECR
+      run: |
+        REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+        REPO="${{ inputs.ecr-repository }}"
+        SHORT_SHA="${GITHUB_SHA:0:7}"
+        [ "${{ inputs.tag-with-latest }}" = "true" ] && docker push "${REGISTRY}/${REPO}:latest"
+        [ "${{ inputs.tag-with-sha }}" = "true" ] && docker push "${REGISTRY}/${REPO}:${SHORT_SHA}"
+      shell: bash
